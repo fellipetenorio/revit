@@ -50,7 +50,6 @@ namespace ManagementRevitPlugin
         {
             // Find all Wall instances in the document by using category filter
             ElementCategoryFilter filter = new ElementCategoryFilter(BuiltInCategory.OST_Walls);
-            
             // Apply the filter to the elements in the active document
             // Use shortcut WhereElementIsNotElementType() to find wall instances only
             FilteredElementCollector collector = new FilteredElementCollector(document);
@@ -59,11 +58,13 @@ namespace ManagementRevitPlugin
             String prompt = string.Format("Total Walls: {0}. The walls in the current document are:\n", walls.Count);
             Wall wall;
             Double total = 0d;
+            Parameter parameter;
             foreach (Element e in walls)
             {
                 wall = e as Wall;
-                total += wall.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
-                prompt += total+"\n";
+                parameter = wall.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED);
+                prompt += string.Format("{0} ({1})\n", parameter.AsDouble(), parameter.DisplayUnitType);
+                total += parameter.AsDouble();
                 //prompt += wall.GetMaterialArea(e.Id, true) + "\n";
             }
             prompt = "Total: " + total+"\n"+prompt;
