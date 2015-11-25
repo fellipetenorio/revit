@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Command">    
+    <Assembly>
+      C:\Users\Fellipe\Source\Repos\revit\ManagementRevitPlugin\ManagementRevitPlugin\bin\Debug\ManagementRevitPlugin.dll
+    </Assembly>
+    <ClientId>502fe383-2648-4e98-adf8-5e6047f9dc37</ClientId>
+    <FullClassName>ManagementRevitPlugin.Plugin</FullClassName>
+    <Text>DocumentSelect</Text>
+    <VendorId>FTF</VendorId>
+    <VisibilityMode>AlwaysVisible</VisibilityMode>
+  </AddIn>
+</RevitAddIns>

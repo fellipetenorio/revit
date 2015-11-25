@@ -56,14 +56,17 @@ namespace ManagementRevitPlugin
             FilteredElementCollector collector = new FilteredElementCollector(document);
             IList<Element> walls =
             collector.WherePasses(filter).WhereElementIsNotElementType().ToElements();
-            String prompt = string.Format("Total Walls: %d. The walls in the current document are:\n", walls.Count);
+            String prompt = string.Format("Total Walls: {0}. The walls in the current document are:\n", walls.Count);
             Wall wall;
+            Double total = 0d;
             foreach (Element e in walls)
             {
                 wall = e as Wall;
-
-                prompt += wall.GetMaterialArea(e.Id, true) + "\n";
+                total += wall.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
+                prompt += total+"\n";
+                //prompt += wall.GetMaterialArea(e.Id, true) + "\n";
             }
+            prompt = "Total: " + total+"\n"+prompt;
             TaskDialog.Show("Revit", prompt);
         }
 
