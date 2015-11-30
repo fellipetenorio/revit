@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows;
 
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB.Architecture;
+using System.Text;
+using System.IO;
 
 namespace ManagementRevitPlugin
 {
@@ -46,7 +49,7 @@ namespace ManagementRevitPlugin
 
         }
 
-        public static void FilterWalls(Document document)
+        public static async void FilterWalls(Document document)
         {
             // Find all Wall instances in the document by using category filter
             ElementCategoryFilter filter = new ElementCategoryFilter(BuiltInCategory.OST_Walls);
@@ -59,15 +62,31 @@ namespace ManagementRevitPlugin
             Wall wall;
             Double total = 0d;
             Parameter parameter;
+            int areaPerHour = 3;
+            double tempoTotal = 0;
+            int index = 0;
             foreach (Element e in walls)
             {
                 wall = e as Wall;
-                parameter = wall.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED);
-                prompt += string.Format("{0} ({1})\n", parameter.AsDouble(), parameter.DisplayUnitType);
-                total += parameter.AsDouble();
-                //prompt += wall.GetMaterialArea(e.Id, true) + "\n";
+                //StringBuilder sb = new StringBuilder();
+                //foreach (BuiltInParameter b in Enum.GetValues(typeof(BuiltInParameter)))
+                //{
+                //    //sb.AppendLine(string.Format("{0}: {1}", Enum.GetName(typeof(BuiltInParameter), b), wall.get_Parameter(b).AsValueString()));
+                //    //  Enum.GetName(typeof(BuiltInParameter), b), wall.get_Parameter(b)
+
+                //}
+                tempoTotal = wall.GetOrderedParameters()[21].AsDouble() / areaPerHour;
+                prompt += string.Format("Parede:{0}, Área: {1}. Tempo Necessário: {2} horas.\n", 
+                    ++index, 
+                    wall.GetOrderedParameters()[21].AsValueString(),
+                    tempoTotal);
+                //using (StreamWriter outfile = new StreamWriter(@"C:\Revit\wall.txt", true))
+                //{
+                //    await outfile.WriteAsync(sb.ToString());
+                //}
+
             }
-            prompt = "Total: " + total+"\n"+prompt;
+            prompt = "Tempo Total de Construção das paredes: " + tempoTotal+"\n"+prompt;
             TaskDialog.Show("Revit", prompt);
         }
 
