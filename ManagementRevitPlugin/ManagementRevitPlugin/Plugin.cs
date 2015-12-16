@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows;
 
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
@@ -9,6 +8,8 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB.Architecture;
 using System.Text;
 using System.IO;
+using ManagementRevitPlugin.DAO;
+using System.Linq;
 
 namespace ManagementRevitPlugin
 {
@@ -20,12 +21,11 @@ namespace ManagementRevitPlugin
         {
             try
             {
-                // Select some elements in Revit before invoking this command
-                //TaskDialog dialog = new TaskDialog("Info");
-                //dialog.W
-                // Get the handle of current document.
+                // Cria o repositorio passando a string de conexao
+                Repositorio rep = new Repositorio("Server=FELLIPE-MACWIN;Database=db_LibBim;Integrated Security=true");
+                
                 UIDocument uidoc = commandData.Application.ActiveUIDocument;
-
+                
                 // Get the element selection of current document.
                 Selection selection = uidoc.Selection;
                 ICollection<ElementId> selectedIds = uidoc.Selection.GetElementIds();
@@ -33,7 +33,7 @@ namespace ManagementRevitPlugin
 
                 // File to hold text content
                 StringBuilder sb = new StringBuilder();
-                FilterWalls(document, sb);
+                FilterWalls(document, sb, rep);
 
                 using (StreamWriter outfile = new StreamWriter(@"C:\Revit\wall.txt", false))
                 {
@@ -44,7 +44,7 @@ namespace ManagementRevitPlugin
                     }
                     catch (Exception ex)
                     {
-                        TaskDialog.Show("Revit","Não conseguiu criar o arquivo texto. Motivo: " + ex.Message);
+                        TaskDialog.Show("Revit", "Não conseguiu criar o arquivo texto. Motivo: " + ex.Message);
                         return Result.Failed;
                     }
 
@@ -65,7 +65,7 @@ namespace ManagementRevitPlugin
 
         }
 
-        public static void FilterWalls(Document document, StringBuilder sb)
+        public static void FilterWalls(Document document, StringBuilder sb, Repositorio rep)
         {
             sb.AppendLine("== Tratando Paredes ==");
             StringBuilder temp = new StringBuilder();
@@ -96,13 +96,18 @@ namespace ManagementRevitPlugin
             decimal costBricksPerWall = 0;
             decimal totalBricksCost = 0;
 
+            // Orcamento via Banco
+            List<int> visitedTypes = new List<int>();
+            ElementId currElemId;
+            int currType;
+            Wall newWall;
+            IList<Element> currElems;
             foreach (Element e in walls)
             {
                 wall = e as Wall;
                 
                 // Convert 
                 areaSquareMeters = UnitUtils.ConvertFromInternalUnits(wall.GetOrderedParameters()[20].AsDouble(), DisplayUnitType.DUT_SQUARE_METERS);
-                
 
                 prompt += string.Format("Parede:{0}, Área: {1}. Tempo Necessário: {2} horas.\n", ++index, wall.GetOrderedParameters()[20].AsValueString(), totalTime);
 
@@ -115,14 +120,31 @@ namespace ManagementRevitPlugin
 
                 // Values
                 costBricksPerWall = bricksPerWall * cost100Bricks / 100;
-
+                
                 // Update Totals
                 totalTime += timePerWall;
                 totalBricks += bricksPerWall;
                 totalBricksCost += costBricksPerWall;
 
+                currElemId = wall.GetTypeId();
+                currType = currElemId.IntegerValue;
+
+                if(visitedTypes.Contains(currType))
+                {
+                    // Wall Type already visited
+                    continue;
+                }
+
+                currElems = FilterElementsByTypeId(document, currElemId);
+
+                foreach(Element e2 in currElems)
+                {
+                    newWall = e2 as Wall;
+                    // TODO - Continuar daqui
+                }
+
                 // Log
-                temp.AppendLine(string.Format("Parede {0}: {1}", index, wall.Name));
+                temp.AppendLine(string.Format("Parede {0}: {1} (Type: {2})", index, wall.Name, wall.GetTypeId()));
                 temp.AppendLine(string.Format("Tempo de Construção: {0} horas", timePerWall));
                 temp.AppendLine(string.Format("Área: {0}", wall.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsValueString()));
                 temp.AppendLine(string.Format("Volume: {0}", wall.get_Parameter(BuiltInParameter.HOST_VOLUME_COMPUTED).AsValueString()));
@@ -225,6 +247,18 @@ namespace ManagementRevitPlugin
 
             //    TaskDialog.Show("Revit", info);
             //}
+        }
+
+        public static IList<Element> FilterElementsByTypeId(Document document, ElementId id)
+        {
+            // Find all Wall instances in the document by using category filter
+            
+            ElementCategoryFilter filter = new ElementCategoryFilter(id);
+            // Apply the filter to the elements in the active document
+            // Use shortcut WhereElementIsNotElementType() to find wall instances only
+            FilteredElementCollector collector = new FilteredElementCollector(document);
+
+            return collector.WherePasses(filter).WhereElementIsNotElementType().ToElements();
         }
     }
 }
